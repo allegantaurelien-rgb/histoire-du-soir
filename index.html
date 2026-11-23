@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141836">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Histoire du soir">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>L’histoire du soir</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#141836;--bg2:#1e2450;--ink:#f4efe0;--soft:#aab0d6;--moon:#f6d776;--line:#363d78}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 80% 0,#2a3170 0,var(--bg) 55%);color:var(--ink);font-family:'Fredoka',ui-rounded,system-ui,sans-serif;font-size:18px}
+main{max-width:640px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top,0px)) 20px calc(60px + env(safe-area-inset-bottom,0px))}
+h1{font-size:2.2rem;margin:0 0 4px;font-weight:600}
+.sub{color:var(--soft);margin:0 0 28px}
+h2{font-size:1.1rem;font-weight:500;color:var(--soft);margin:26px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:inherit;color:var(--ink);background:var(--bg2);border:2px solid var(--line);border-radius:999px;padding:10px 18px;cursor:pointer;font-size:1.05rem}
+.chip[aria-pressed=true]{background:var(--moon);color:#2a2408;border-color:var(--moon);font-weight:600}
+.chip:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+input,select{font:inherit;width:100%;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:var(--bg2);color:var(--ink)}
+.row{display:flex;gap:12px}.row>*{flex:1}
+label{display:block;color:var(--soft);font-size:.95rem;margin-bottom:6px}
+.go{margin-top:30px;width:100%;font:inherit;font-size:1.25rem;font-weight:600;padding:16px;border:0;border-radius:18px;background:var(--moon);color:#2a2408;cursor:pointer}
+.go:disabled{opacity:.5;cursor:wait}
+#status{margin:18px 0 0;color:var(--soft);min-height:1.4em}
+#player{margin-top:18px;display:none}
+audio{width:100%}
+a.dl{color:var(--moon);display:inline-block;margin-top:10px}
+details{margin-top:30px;color:var(--soft);font-size:.95rem}
+summary{cursor:pointer}
+details .row{margin-top:12px}
+#text{white-space:pre-wrap;margin-top:18px;line-height:1.6;font-size:1rem;color:var(--soft)}
+@media (prefers-reduced-motion:no-preference){.chip{transition:background .15s}}
+
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+ background-image:radial-gradient(2px 2px at 12% 18%,#fff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 30% 8%,#fff 50%,transparent 51%),radial-gradient(2px 2px at 55% 22%,#f6d776 50%,transparent 51%),radial-gradient(1.5px 1.5px at 72% 12%,#fff 50%,transparent 51%),radial-gradient(2px 2px at 88% 30%,#fff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 8% 55%,#fff 50%,transparent 51%),radial-gradient(2px 2px at 92% 62%,#f6d776 50%,transparent 51%),radial-gradient(1.5px 1.5px at 20% 85%,#fff 50%,transparent 51%),radial-gradient(2px 2px at 80% 90%,#fff 50%,transparent 51%);opacity:.7}
+main{position:relative;z-index:1}
+.moon{font-size:3.6rem;line-height:1;margin-bottom:6px;filter:drop-shadow(0 0 18px #f6d77666)}
+h1{font-size:2.5rem}
+h2{font-size:1.2rem;color:var(--ink);margin:30px 0 12px}
+.chip{font-size:1.1rem;padding:10px 18px 10px 12px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 0 #0e1130}
+.chip .e{font-size:1.6rem;line-height:1}
+.chip:active{transform:translateY(2px);box-shadow:none}
+.chip[aria-pressed=true]{transform:scale(1.04);box-shadow:0 0 18px #f6d77666}
+.go{font-size:1.35rem;padding:18px;box-shadow:0 5px 0 #b89a2e}
+.go:active{transform:translateY(3px);box-shadow:0 2px 0 #b89a2e}
+#status{font-size:1.1rem;text-align:center}
+@media (prefers-reduced-motion:no-preference){.moon{animation:float 4s ease-in-out infinite}@keyframes float{50%{transform:translateY(-6px)}}}
+</style>
+</head>
+<body>
+<main>
+  <div class="moon" aria-hidden="true">🌙</div>
+  <h1>L’histoire du soir</h1>
+  <p class="sub">Choisis tes mots magiques, et l’histoire commence ! 💤</p>
+
+  <h2>🦸 Qui est le héros ?</h2>
+  <div class="chips" data-group="heros">
+    <button class="chip" aria-pressed="false"><span class="e">👸</span> <span class="t">une princesse</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🛡️</span> <span class="t">un chevalier</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🐉</span> <span class="t">un dragon</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🦊</span> <span class="t">un petit renard</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🤖</span> <span class="t">un robot</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🧙‍♀️</span> <span class="t">une sorcière gentille</span></button>
+  </div>
+
+  <h2>🗺️ Où se passe l’histoire ?</h2>
+  <div class="chips" data-group="lieu">
+    <button class="chip" aria-pressed="false"><span class="e">🌲</span> <span class="t">dans la forêt</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🐠</span> <span class="t">sous la mer</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🚀</span> <span class="t">dans l’espace</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🏰</span> <span class="t">au château</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">⛰️</span> <span class="t">à la montagne</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">☁️</span> <span class="t">dans un nuage</span></button>
+  </div>
+
+  <h2>🎁 Et aussi…</h2>
+  <div class="chips" data-group="plus">
+    <button class="chip" aria-pressed="false"><span class="e">💎</span> <span class="t">un trésor</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">⭐</span> <span class="t">des étoiles</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🤝</span> <span class="t">un nouvel ami</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">✨</span> <span class="t">de la magie</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🍰</span> <span class="t">un gâteau</span></button>
+    <button class="chip" aria-pressed="false"><span class="e">🧳</span> <span class="t">un voyage</span></button>
+  </div>
+
+  <h2>✏️ Un autre mot, si tu veux</h2>
+  <input id="free" type="text" placeholder="ex : licorne, pirates, camion de pompier…">
+
+  <div class="row" style="margin-top:20px">
+    <div><label for="names">Prénoms des enfants (facultatif)</label><input id="names" type="text" placeholder="Léa et Tom"></div>
+    <div><label for="len">Durée</label>
+      <select id="len"><option value="600">5 minutes</option><option value="1100" selected>10 minutes</option></select></div>
+  </div>
+
+  <button class="go" id="go">📖 Raconte-moi une histoire</button>
+  <p id="status" role="status"></p>
+  <div id="player"><audio id="audio" controls></audio><br><a class="dl" id="dl" download="histoire.wav">💾 Télécharger l’histoire</a></div>
+  <div id="text"></div>
+
+  <details>
+    <summary>⚙️ Réglages (pour les parents)</summary>
+    <div style="margin-top:12px"><label for="key">Clé API Gemini (gardée uniquement dans ce navigateur)</label>
+      <input id="key" type="password" autocomplete="off" placeholder="AIza…"></div>
+    <div class="row">
+      <div><label for="voice">Voix</label>
+        <select id="voice"><option>Kore</option><option>Sulafat</option><option>Achernar</option><option>Gacrux</option><option>Charon</option><option>Algieba</option></select></div>
+      <div><label for="age">Âge des enfants</label><input id="age" type="text" value="4 à 7 ans"></div>
+    </div>
+  </details>
+</main>
+
+<script>
+// Modèles : à ajuster si Google en publie de plus récents dans AI Studio.
+const TEXT_MODEL = "gemini-2.5-flash";
+const TTS_MODEL  = "gemini-2.5-flash-preview-tts";
+const API = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+const $ = id => document.getElementById(id);
+const status = m => $("status").textContent = m;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Mémorise clé, voix, âge (seulement dans ce navigateur)
+for (const k of ["key","voice","age","names"]) {
+  try { const v = localStorage.getItem("hs_"+k); if (v) $(k).value = v; } catch(e){}
+  $(k).addEventListener("change", () => { try { localStorage.setItem("hs_"+k, $(k).value); } catch(e){} });
+}
+
+// Mots-clés : on peut en choisir plusieurs
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () =>
+  c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") === "true" ? "false" : "true")));
+
+function keywords() {
+  const k = [...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c => c.querySelector('.t').textContent);
+  if ($("free").value.trim()) k.push($("free").value.trim());
+  return k;
+}
+
+async function call(model, body) {
+  const key = $("key").value.trim();
+  if (!key) throw new Error("Ajoute ta clé API dans « Réglages (pour les parents) ».");
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const r = await fetch(API + model + ":generateContent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 429 || r.status === 503) { status("⏳ Petite pause, Google est un peu occupé…"); await sleep(15000); continue; }
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error?.message || "Erreur " + r.status);
+    return j;
+  }
+  throw new Error("Trop de demandes, réessaie dans une minute.");
+}
+
+async function makeStory(words) {
+  const n = +$("len").value;
+  const names = $("names").value.trim();
+  const prompt = `Écris une histoire du soir en français pour des enfants de ${$("age").value}.
+Mots-clés choisis par les enfants : ${words.join(", ")}.
+${names ? "Les héros ou compagnons de l'histoire s'appellent : " + names + "." : ""}
+Longueur : environ ${n} mots, pas plus (c'est lu à voix haute, doucement).
+Style : phrases simples, douces, rythme lent, quelques répétitions rassurantes, pas de peur ni de violence.
+L'histoire s'apaise progressivement et finit par les personnages qui s'endorment, avec une dernière phrase qui invite l'enfant à fermer les yeux.
+Réponds uniquement avec le texte de l'histoire : un titre sur la première ligne, puis des paragraphes courts. Pas de markdown, pas de commentaire.`;
+  const j = await call(TEXT_MODEL, { contents: [{ parts: [{ text: prompt }] }] });
+  return j.candidates[0].content.parts.map(p => p.text || "").join("").replace(/[*#_]/g, "").trim();
+}
+
+// Découpe en morceaux de ~1500 caractères aux fins de paragraphes
+function chunks(text) {
+  const out = []; let cur = "";
+  for (const p of text.split(/\n+/)) {
+    if ((cur + "\n" + p).length > 1500 && cur) { out.push(cur); cur = p; } else cur = cur ? cur + "\n" + p : p;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+async function speak(part) {
+  const j = await call(TTS_MODEL, {
+    contents: [{ parts: [{ text: "Lis lentement, d'une voix douce et calme pour endormir un enfant :\n" + part }] }],
+    generationConfig: { responseModalities: ["AUDIO"],
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: $("voice").value } } } }
+  });
+  const b64 = j.candidates[0].content.parts[0].inlineData.data;
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+// PCM 16 bits / 24 kHz mono → fichier WAV lisible partout
+function wav(pcmParts) {
+  const len = pcmParts.reduce((s, a) => s + a.length, 0);
+  const buf = new ArrayBuffer(44 + len), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + len, true); w(8, "WAVEfmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 24000, true); v.setUint32(28, 48000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, "data"); v.setUint32(40, len, true);
+  let o = 44; for (const a of pcmParts) { new Uint8Array(buf, o, a.length).set(a); o += a.length; }
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+$("go").addEventListener("click", async () => {
+  const words = keywords();
+  if (!words.length) { status("👆 Choisis au moins un mot d’abord."); return; }
+  $("go").disabled = true; $("player").style.display = "none"; $("text").textContent = "";
+  try {
+    status("✍️ L’histoire s’écrit…");
+    const story = await makeStory(words);
+    const parts = chunks(story), pcm = [];
+    for (let i = 0; i < parts.length; i++) {
+      status(`🎙️ La voix se prépare… (${i + 1}/${parts.length})`);
+      pcm.push(await speak(parts[i]));
+    }
+    const blob = wav(pcm), url = URL.createObjectURL(blob);
+    $("audio").src = url; $("dl").href = url;
+    $("player").style.display = "block"; $("text").textContent = story;
+    status("🌟 C’est prêt ! Appuie sur lecture.");
+    $("audio").play().catch(() => {});
+  } catch (e) { status("😅 Oups : " + e.message); }
+  $("go").disabled = false;
+});
+</script>
+</body>
+</html>
