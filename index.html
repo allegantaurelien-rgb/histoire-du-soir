@@ -119,8 +119,10 @@ h2{font-size:1.2rem;color:var(--ink);margin:30px 0 12px}
 
 <script>
 // Modèles : à ajuster si Google en publie de plus récents dans AI Studio.
-const TEXT_MODEL = "gemini-2.5-flash";
-const TTS_MODEL  = "gemini-2.5-flash-preview-tts";
+const TEXT_MODEL = "gemini-3.8-flash";
+// Voix : on essaie dans l'ordre, la page garde celle qui fonctionne.
+const TTS_MODELS = ["gemini-3.8-flash-tts", "gemini-3.1-flash-tts-preview"];
+let sampleRate = 24000;
 const API = "https://generativelanguage.googleapis.com/v1beta/models/";
 
 const $ = id => document.getElementById(id);
@@ -146,18 +148,24 @@ function keywords() {
 async function call(model, body) {
   const key = $("key").value.trim();
   if (!key) throw new Error("Ajoute ta clé API dans « Réglages (pour les parents) ».");
-  for (let attempt = 0; attempt < 5; attempt++) {
+  let lastMsg = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
     const r = await fetch(API + model + ":generateContent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify(body)
     });
-    if (r.status === 429 || r.status === 503) { status("⏳ Petite pause, Google est un peu occupé…"); await sleep(15000); continue; }
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error?.message || "Erreur " + r.status);
-    return j;
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) return j;
+    lastMsg = j.error?.message || ("Erreur " + r.status);
+    if (r.status !== 429 && r.status !== 503) throw new Error(lastMsg);
+    // Quota du jour épuisé ou à zéro : inutile d'attendre
+    if (/per day|daily|limit: 0/i.test(lastMsg)) throw new Error("Quota Google atteint (" + lastMsg.slice(0, 200) + ")");
+    const m = /retry in ([\d.]+)s/i.exec(lastMsg) || /"retryDelay":\s*"(\d+)/.exec(JSON.stringify(j));
+    const wait = Math.min(65, Math.ceil(m ? +m[1] : 20) + 2);
+    for (let s = wait; s > 0; s--) { status("⏳ Google demande une petite pause… " + s + " s"); await sleep(1000); }
   }
-  throw new Error("Trop de demandes, réessaie dans une minute.");
+  throw new Error("Google répond encore « trop de demandes » : " + lastMsg.slice(0, 200));
 }
 
 async function makeStory(words) {
@@ -178,19 +186,31 @@ Réponds uniquement avec le texte de l'histoire : un titre sur la première lign
 function chunks(text) {
   const out = []; let cur = "";
   for (const p of text.split(/\n+/)) {
-    if ((cur + "\n" + p).length > 1500 && cur) { out.push(cur); cur = p; } else cur = cur ? cur + "\n" + p : p;
+    if ((cur + "\n" + p).length > 3500 && cur) { out.push(cur); cur = p; } else cur = cur ? cur + "\n" + p : p;
   }
   if (cur) out.push(cur);
   return out;
 }
 
 async function speak(part) {
-  const j = await call(TTS_MODEL, {
+  const body = {
     contents: [{ parts: [{ text: "Lis lentement, d'une voix douce et calme pour endormir un enfant :\n" + part }] }],
     generationConfig: { responseModalities: ["AUDIO"],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: $("voice").value } } } }
-  });
-  const b64 = j.candidates[0].content.parts[0].inlineData.data;
+  };
+  let j, lastErr;
+  for (let i = 0; i < TTS_MODELS.length; i++) {
+    try { j = await call(TTS_MODELS[0], body); break; }
+    catch (e) {
+      lastErr = e;
+      if (/not found|no longer|not supported|unavailable|404/i.test(e.message) && TTS_MODELS.length > 1) TTS_MODELS.push(TTS_MODELS.shift());
+      else throw e;
+    }
+  }
+  if (!j) throw lastErr;
+  const inl = j.candidates[0].content.parts.find(p => p.inlineData).inlineData;
+  const m = /rate=(\d+)/.exec(inl.mimeType || ""); if (m) sampleRate = +m[1];
+  const b64 = inl.data;
   const bin = atob(b64), arr = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return arr;
@@ -203,32 +223,40 @@ function wav(pcmParts) {
   const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
   w(0, "RIFF"); v.setUint32(4, 36 + len, true); w(8, "WAVEfmt ");
   v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, 24000, true); v.setUint32(28, 48000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
   w(36, "data"); v.setUint32(40, len, true);
   let o = 44; for (const a of pcmParts) { new Uint8Array(buf, o, a.length).set(a); o += a.length; }
   return new Blob([buf], { type: "audio/wav" });
 }
 
+// On garde le travail déjà fait : si ça échoue en route, un nouveau clic reprend là où ça s'est arrêté.
+let job = null;
 $("go").addEventListener("click", async () => {
   const words = keywords();
   if (!words.length) { status("👆 Choisis au moins un mot d’abord."); return; }
+  const sig = [words.join("|"), $("len").value, $("names").value, $("voice").value, $("age").value].join("#");
   $("go").disabled = true; $("player").style.display = "none"; $("text").textContent = "";
   try {
-    status("✍️ L’histoire s’écrit…");
-    const story = await makeStory(words);
-    const parts = chunks(story), pcm = [];
-    for (let i = 0; i < parts.length; i++) {
-      status(`🎙️ La voix se prépare… (${i + 1}/${parts.length})`);
-      pcm.push(await speak(parts[i]));
+    if (!job || job.sig !== sig) {
+      status("✍️ L’histoire s’écrit…");
+      const story = await makeStory(words);
+      job = { sig, story, parts: chunks(story), pcm: [] };
     }
-    const blob = wav(pcm), url = URL.createObjectURL(blob);
+    while (job.pcm.length < job.parts.length) {
+      const i = job.pcm.length;
+      status(`🎙️ La voix se prépare… (${i + 1}/${job.parts.length})`);
+      job.pcm.push(await speak(job.parts[i]));
+    }
+    const blob = wav(job.pcm), url = URL.createObjectURL(blob);
     $("audio").src = url; $("dl").href = url;
-    $("player").style.display = "block"; $("text").textContent = story;
+    $("player").style.display = "block"; $("text").textContent = job.story;
     status("🌟 C’est prêt ! Appuie sur lecture.");
     $("audio").play().catch(() => {});
-  } catch (e) { status("😅 Oups : " + e.message); }
+    job = null;
+  } catch (e) { status("😅 Oups : " + e.message + (job ? " — touche le bouton pour reprendre." : "")); }
   $("go").disabled = false;
 });
+
 </script>
 </body>
 </html>
